@@ -26,6 +26,7 @@
 
 #include "mapdocument.h"
 #include "consoledock.h"
+#include "clipboardmanager.h"
 #include "preferencesdialog.h"
 
 #include <QMainWindow>
@@ -129,16 +130,16 @@ private slots:
     void closeFile();
     void closeAllFiles();
 
-    void cut();
-    void copy();
     void paste();
-    void delete_(); // 'delete' is a reserved word
+    void pasteInPlace();
+    void paste(ClipboardManager::PasteFlags flags);
     void openPreferences();
 
     void labelVisibilityActionTriggered(QAction *action);
     void zoomIn();
     void zoomOut();
     void zoomNormal();
+    void setFullScreen(bool fullScreen);
 
     bool newTileset(const QString &path = QString());
     void newTilesets(const QStringList &paths);
@@ -251,6 +252,7 @@ private:
     QAction *mRecentFiles[MaxRecentFiles];
 
     QMenu *mLayerMenu;
+    QMenu *mNewLayerMenu;
     QAction *mViewsAndToolbarsMenu;
     QAction *mShowObjectTypesEditor;
     QAction *mShowTileAnimationEditor;

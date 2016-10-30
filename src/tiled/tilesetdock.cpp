@@ -140,6 +140,11 @@ protected:
 };
 
 
+/**
+ * Qt excludes OS X when implementing mouse wheel for switching tabs. However,
+ * we explicitly want this feature on the tileset tab bar as a possible means
+ * of navigation.
+ */
 class WheelEnabledTabBar : public QTabBar
 {
 public:
@@ -227,6 +232,7 @@ TilesetDock::TilesetDock(QWidget *parent):
 
     mTabBar->setMovable(true);
     mTabBar->setUsesScrollButtons(true);
+    mTabBar->setExpanding(false);
 
     connect(mTabBar, SIGNAL(currentChanged(int)),
             SLOT(updateActions()));
@@ -669,12 +675,8 @@ void TilesetDock::tilesetMoved(int from, int to)
 {
 #if QT_VERSION >= 0x050600
     mTilesets.move(from, to);
-#elif QT_VERSION >= 0x050200
-    mTilesets.insert(to, mTilesets.takeAt(from));
 #else
-    SharedTileset tileset = mTilesets.at(from);
-    mTilesets.remove(from);
-    mTilesets.insert(to, tileset);
+    mTilesets.insert(to, mTilesets.takeAt(from));
 #endif
 
     // Move the related tileset views

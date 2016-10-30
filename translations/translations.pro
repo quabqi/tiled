@@ -16,10 +16,9 @@ LANGUAGES = \
     en \
     es \
     fr \
-    he \
     it \
     ja \
-    lv \
+    nb \
     nl \
     pl \
     pt \
@@ -28,6 +27,10 @@ LANGUAGES = \
     tr \
     zh \
     zh_TW
+
+# Disabled languages because they're too outdated
+#    he \
+#    lv \
 
 # Helper function to adapt the slashes in a path to the system
 defineReplace(fixSlashes) {

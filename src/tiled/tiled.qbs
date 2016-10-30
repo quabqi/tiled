@@ -20,23 +20,41 @@ QtGuiApplication {
     }
 
     cpp.includePaths: ["."]
-    cpp.rpaths: qbs.targetOS.contains("darwin") ? ["@loader_path/../Frameworks"] : ["$ORIGIN/../lib"]
-    cpp.cxxPrecompiledHeader: "pch.h"
+    cpp.rpaths: {
+        if (qbs.targetOS.contains("darwin"))
+            return ["@loader_path/../Frameworks"];
+        else if (project.linuxArchive)
+            return ["$ORIGIN/lib"]
+        else
+            return ["$ORIGIN/../lib"];
+    }
+    cpp.useCxxPrecompiledHeader: true
     cpp.cxxLanguageVersion: "c++11"
 
     cpp.defines: {
-        var defs = ["TILED_VERSION=" + project.version];
+        var defs = [
+            "TILED_VERSION=" + project.version,
+            "QT_NO_CAST_FROM_ASCII",
+            "QT_NO_CAST_TO_ASCII"
+        ];
         if (project.snapshot)
             defs.push("TILED_SNAPSHOT");
         if (project.sparkleEnabled)
             defs.push("TILED_SPARKLE");
+        if (project.linuxArchive)
+            defs.push("TILED_LINUX_ARCHIVE");
         return defs;
     }
 
     consoleApplication: false
 
+    Group {
+        name: "Precompiled header"
+        files: ["pch.h"]
+        fileTags: ["cpp_pch_src"]
+    }
+
     files: [
-        "Info.plist",
         "aboutdialog.cpp",
         "aboutdialog.h",
         "aboutdialog.ui",
@@ -165,8 +183,13 @@ QtGuiApplication {
         "flipmapobjects.h",
         "geometry.cpp",
         "geometry.h",
+        "imagecolorpickerwidget.cpp",
+        "imagecolorpickerwidget.h",
+        "imagecolorpickerwidget.ui",
         "imagelayeritem.cpp",
         "imagelayeritem.h",
+        "clickablelabel.cpp",
+        "clickablelabel.h",
         "languagemanager.cpp",
         "languagemanager.h",
         "layerdock.cpp",
@@ -199,8 +222,6 @@ QtGuiApplication {
         "minimapdock.cpp",
         "minimapdock.h",
         "minimap.h",
-        "movabletabwidget.cpp",
-        "movabletabwidget.h",
         "movelayer.cpp",
         "movelayer.h",
         "movemapobject.cpp",
@@ -240,7 +261,6 @@ QtGuiApplication {
         "patreondialog.cpp",
         "patreondialog.h",
         "patreondialog.ui",
-        "pch.h",
         "pluginlistmodel.cpp",
         "pluginlistmodel.h",
         "preferences.cpp",
@@ -285,6 +305,8 @@ QtGuiApplication {
         "stampbrush.h",
         "standardautoupdater.cpp",
         "standardautoupdater.h",
+        "stylehelper.cpp",
+        "stylehelper.h",
         "terrainbrush.cpp",
         "terrainbrush.h",
         "terraindock.cpp",
@@ -293,6 +315,11 @@ QtGuiApplication {
         "terrainmodel.h",
         "terrainview.cpp",
         "terrainview.h",
+        "texteditordialog.cpp",
+        "texteditordialog.h",
+        "texteditordialog.ui",
+        "textpropertyedit.cpp",
+        "textpropertyedit.h",
         "thumbnailrenderer.cpp",
         "thumbnailrenderer.h",
         "tileanimationdriver.cpp",
@@ -305,6 +332,8 @@ QtGuiApplication {
         "tiledapplication.cpp",
         "tiledapplication.h",
         "tiled.qrc",
+        "tiledproxystyle.cpp",
+        "tiledproxystyle.h",
         "tilelayeritem.cpp",
         "tilelayeritem.h",
         "tilepainter.cpp",
@@ -361,6 +390,7 @@ QtGuiApplication {
         name: "OS X"
         condition: qbs.targetOS.contains("osx")
         files: [
+            "Info.plist",
             "macsupport.h",
             "macsupport.mm",
         ]
@@ -369,7 +399,9 @@ QtGuiApplication {
     Group {
         qbs.install: true
         qbs.installDir: {
-            if (qbs.targetOS.contains("windows") || qbs.targetOS.contains("osx"))
+            if (qbs.targetOS.contains("windows")
+                    || qbs.targetOS.contains("osx")
+                    || project.linuxArchive)
                 return ""
             else
                 return "bin"

@@ -320,7 +320,7 @@ static bool visibleIn(const QRectF &area, MapObject *object,
     return intersects(area, boundingRect);
 }
 
-void MapDocument::resizeMap(const QSize &size, const QPoint &offset)
+void MapDocument::resizeMap(const QSize &size, const QPoint &offset, bool removeObjects)
 {
     const QRegion movedSelection = mSelectedArea.translated(offset);
     const QRect newArea = QRect(-offset, size);
@@ -345,13 +345,15 @@ void MapDocument::resizeMap(const QSize &size, const QPoint &offset)
             ObjectGroup *objectGroup = static_cast<ObjectGroup*>(layer);
 
             // Remove objects that will fall outside of the map
-            foreach (MapObject *o, objectGroup->objects()) {
-                if (!visibleIn(visibleArea, o, mRenderer)) {
-                    mUndoStack->push(new RemoveMapObject(this, o));
-                } else {
-                    QPointF oldPos = o->position();
-                    QPointF newPos = oldPos + pixelOffset;
-                    mUndoStack->push(new MoveMapObject(this, o, newPos, oldPos));
+            if (removeObjects) {
+                foreach (MapObject *o, objectGroup->objects()) {
+                    if (!visibleIn(visibleArea, o, mRenderer)) {
+                        mUndoStack->push(new RemoveMapObject(this, o));
+                    } else {
+                        QPointF oldPos = o->position();
+                        QPointF newPos = oldPos + pixelOffset;
+                        mUndoStack->push(new MoveMapObject(this, o, newPos, oldPos));
+                    }
                 }
             }
             break;
@@ -382,7 +384,7 @@ void MapDocument::offsetMap(const QList<int> &layerIndexes,
                                          bounds, wrapX, wrapY));
     } else {
         mUndoStack->beginMacro(tr("Offset Map"));
-        foreach (const int layerIndex, layerIndexes) {
+        for (const int layerIndex : layerIndexes) {
             mUndoStack->push(new OffsetLayer(this, layerIndex, offset,
                                              bounds, wrapX, wrapY));
         }
@@ -437,7 +439,7 @@ void MapDocument::rotateSelectedObjects(RotateDirection direction)
  * Adds a layer of the given type to the top of the layer stack. After adding
  * the new layer, emits editLayerNameRequested().
  */
-void MapDocument::addLayer(Layer::TypeFlag layerType)
+Layer *MapDocument::addLayer(Layer::TypeFlag layerType)
 {
     Layer *layer = nullptr;
     QString name;
@@ -463,6 +465,8 @@ void MapDocument::addLayer(Layer::TypeFlag layerType)
     setCurrentLayerIndex(index);
 
     emit editLayerNameRequested();
+
+    return layer;
 }
 
 /**
@@ -475,6 +479,9 @@ void MapDocument::duplicateLayer()
 
     Layer *duplicate = mMap->layerAt(mCurrentLayerIndex)->clone();
     duplicate->setName(tr("Copy of %1").arg(duplicate->name()));
+
+    if (duplicate->layerType() == Layer::ObjectGroupType)
+        static_cast<ObjectGroup*>(duplicate)->resetObjectIds();
 
     const int index = mCurrentLayerIndex + 1;
     QUndoCommand *cmd = new AddLayer(this, index, duplicate);
@@ -945,8 +952,9 @@ void MapDocument::duplicateObjects(const QList<MapObject *> &objects)
     mUndoStack->beginMacro(tr("Duplicate %n Object(s)", "", objects.size()));
 
     QList<MapObject*> clones;
-    foreach (const MapObject *mapObject, objects) {
+    for (const MapObject *mapObject : objects) {
         MapObject *clone = mapObject->clone();
+        clone->resetId();
         clones.append(clone);
         mUndoStack->push(new AddMapObject(this,
                                           mapObject->objectGroup(),
